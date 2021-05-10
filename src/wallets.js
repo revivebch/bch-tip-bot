@@ -7,16 +7,17 @@ const grpc = new GrpcClient.GrpcClient({ url: 'bchd.imaginary.cash:8335' })
 let _sendraw = async function (rawtx) {
     var doc = {}
     await grpc.submitTransaction({txnHex: rawtx}).then(res => {
+        doc.success = true
         doc.txid = Buffer.from(res.getHash_asU8().reverse()).toString('hex')
     })
-    return doc
+    if(doc.success) {return doc} else {return false}
 }
 
 let _getutxo = async function (address) {
     var utxo = {ins: [], balance: 0}
     await grpc.getAddressUtxos({ address: address, includeMempool: true }).then(res => {
         res.getOutputsList().forEach(output => {
-            const outpoint = output.getOutpoint();
+            const outpoint = output.getOutpoint()
             var doc = {
                 "txId": Buffer.from(outpoint.getHash_asU8().reverse()).toString('hex'),
                 "outputIndex": outpoint.getIndex(),
@@ -31,45 +32,41 @@ let _getutxo = async function (address) {
     return utxo
 }
 
-let _exists = function (ident) {
-    wallets.exists({ident: ident}, function (err, doc) {
-        if (err) {
-            console.error('[ERROR]', err)
-            return false
-        } else {
-            if(doc) {
-                return doc
-            } else {
-                return 'false'
-            }
-        }
-    })
+let _exists = async function (ident) {
+    var data = await wallets.find({ ident: ident}).exec()
+    if (data && data[0]) {return true} else {return false}
+}
+
+let balance = async function (ident) {
+    var data = await wallets.find({ident: ident}).exec()
+    var doc = {
+        success: true,
+        address: data[0].address,
+        balance: (await _getutxo(data[0].address)).balance
+    }
+    return doc
 }
 
 let create = function (ident) {
     var private = new bitcore.PrivateKey()
-    var wif = private.toWIF()
-    var address = private.toAddress()
-
     var doc = {
-        wif: wif,
-        address: address.toString(bitcore.Address.CashAddrFormat),
+        wif: private.toWIF(),
+        address: private.toAddress().toString(bitcore.Address.CashAddrFormat),
         ident: ident
     }
     return doc
 }
 
 let receive = async function (ident) {
-    var data = await wallets.find({ ident: ident}).exec();
+    var data = await wallets.find({ ident: ident}).exec()
     if (data && data[0] && data[0].address && data[0].wif && data[0].ident) {
         var doc = {
+            success: true,
             address: data[0].address,
             ident: data[0].ident
         }
         return doc
-    } else {
-        return false
-    }
+    } else {return false}
 }
 
 let send = async function (ident, recipient, amount) {
@@ -89,6 +86,6 @@ let send = async function (ident, recipient, amount) {
 }
 
 module.exports = {
-    create, send, receive, _exists, _getutxo, _sendraw
+    create, send, receive, balance, _exists, _getutxo, _sendraw
 }
 

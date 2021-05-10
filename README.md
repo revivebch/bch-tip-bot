@@ -16,17 +16,21 @@ When deciding what the :user_id should be, remember to use something that is sta
 
 ``http://localhost:3000/:user_id/create``
 
-### Receive Bitcoin Cash
+### Get Wallet Address
 
 ``http://localhost:3000/:user_id/receive``
+
+### Get Wallet Balance
+
+``http://localhost:3000/:user_id/balance``
 
 ### Send Bitcoin Cash
 
 ``http://localhost:3000/:user_id/send/:address/:amount``
 
-### Send Bitcoin Cash to another user
+### Send Bitcoin Cash Internally
 
-``http://localhost:3000/:user_id/send/:other_user_id``
+``http://localhost:3000/:user_id/send/:other_user_id/:amount``
 
 ## Installation
 
