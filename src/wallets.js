@@ -1,50 +1,40 @@
+const fetch = require('node-fetch')
 const bitcore = require('bitcore-lib-cash')
 const wallets = require('../models/wallets')
-const fetch = require('node-fetch')
+const GrpcClient = require('grpc-bchrpc-node')
+const grpc = new GrpcClient.GrpcClient({ url: 'bchd.imaginary.cash:8335' })
 
 let _sendraw = async function (rawtx) {
-    var url = 'https://api.bitcore.io/api/BCH/mainnet/tx/send'
-    var doc = {rawTx: rawtx}
-    var txid = ''
-    await fetch(url, {method: 'POST', body: JSON.stringify(doc), headers: { 'Content-Type': 'application/json' }}).then(r => r.json()).then(res => {
-        txid = res
+    var doc = {}
+    await grpc.submitTransaction({txnHex: rawtx}).then(res => {
+        doc.txid = Buffer.from(res.getHash_asU8().reverse()).toString('hex')
     })
-
-    return txid
+    return doc
 }
 
 let _getutxo = async function (address) {
-    var url = 'https://api.bitcore.io/api/BCH/mainnet/address/'+address+'/?unspent=true'
-    var utxo = {
-        ins: [],
-        value: 0
-    }
-
-    await fetch(url).then(r => r.json()).then(res => {
-        if(res[0]) {
-            res.forEach(out => {
-                // because apparantly ?unspent=true means nothing
-                if(!out.spentTxid) {
-                    var doc = {
-                        "txId" : out.mintTxid,
-                        "outputIndex" : out.mintIndex,
-                        "address" : out.address,
-                        "script" : out.script,
-                        "satoshis" : out.value
-                    }
-                    utxo.ins.push(doc)
-                    utxo.value += out.value
-                }
-            })
-        }
+    var utxo = {ins: [], balance: 0}
+    await grpc.getAddressUtxos({ address: address, includeMempool: true }).then(res => {
+        res.getOutputsList().forEach(output => {
+            const outpoint = output.getOutpoint();
+            var doc = {
+                "txId": Buffer.from(outpoint.getHash_asU8().reverse()).toString('hex'),
+                "outputIndex": outpoint.getIndex(),
+                "address" : address,
+                "script" : Buffer.from(output.getPubkeyScript_asU8()).toString('hex'),
+                "satoshis" : output.getValue(),
+            }
+            utxo.ins.push(doc)
+            utxo.balance += output.getValue()
+        })
     })
     return utxo
 }
 
-let exists = function (ident) {
+let _exists = function (ident) {
     wallets.exists({ident: ident}, function (err, doc) {
         if (err) {
-            console.log('[ERROR]', err)
+            console.error('[ERROR]', err)
             return false
         } else {
             if(doc) {
@@ -95,11 +85,10 @@ let send = async function (ident, recipient, amount) {
     .sign(privateKey)
     .serialize()
     var txid = await _sendraw(transaction)
-
     return txid
 }
 
 module.exports = {
-    create, send, receive, exists
+    create, send, receive, _exists, _getutxo, _sendraw
 }
 

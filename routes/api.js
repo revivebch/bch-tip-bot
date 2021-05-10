@@ -6,7 +6,7 @@ const router  = express.Router()
 
 router.get('/:ident/create', async function (req, res) {
     var doc = wallet.create(req.params.ident)
-    if(!wallet.exists(req.params.ident)) {
+    if(!wallet._exists(req.params.ident)) {
         wallets.create(doc, function (err, small) {
             if (err) {
                 res.json({error: 'WALLET_EXISTS', message: 'This identity has already created a wallet'})
@@ -30,6 +30,7 @@ router.get('/:ident/receive', async function (req, res) {
 router.get('/:ident/send/:address/:amount', async function (req, res) {
     try {
         var doc = await wallet.send(req.params.ident, req.params.address, req.params.amount)
+        console.log(doc)
         if(doc) {
             res.json(doc)
         } else {

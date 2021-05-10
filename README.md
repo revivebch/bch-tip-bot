@@ -12,11 +12,9 @@ When deciding what the :user_id should be, remember to use something that is sta
 
 ## Usage
 
-If you opt to disable user PINs through the .env file, you don't need to append anything to the end of the url. This isn't recommended unless you know what you're doing.
-
 ### Wallet Creation
 
-``http://localhost:3000/:user_id/create/:secret_pin``
+``http://localhost:3000/:user_id/create``
 
 ### Receive Bitcoin Cash
 
@@ -24,11 +22,11 @@ If you opt to disable user PINs through the .env file, you don't need to append 
 
 ### Send Bitcoin Cash
 
-``http://localhost:3000/:user_id/send/:secret_pin/:secret_pin``
+``http://localhost:3000/:user_id/send/:address/:amount``
 
 ### Send Bitcoin Cash to another user
 
-``http://localhost:3000/:user_id/send/:other_user_id/:secret_pin``
+``http://localhost:3000/:user_id/send/:other_user_id``
 
 ## Installation
 
