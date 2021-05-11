@@ -20,6 +20,7 @@ router.get('/:ident/create', async function (req, res) {
 router.get('/:ident/receive', async function (req, res) {
     if(await wallet._exists(req.params.ident)) {
         var doc = await wallet.receive(req.params.ident)
+        doc.success = true
         res.json(doc)
     } else {
         res.json({success: false, message: 'no wallet by that name'})
@@ -29,6 +30,7 @@ router.get('/:ident/receive', async function (req, res) {
 router.get('/:ident/balance', async function (req, res) {
     if(await wallet._exists(req.params.ident)) {
         var doc = await wallet.balance(req.params.ident)
+        doc.success = true
         res.json(doc)
     } else {
         res.json({success: false, message: 'no wallet by that name'})
@@ -45,7 +47,12 @@ router.get('/:ident/send/:address/:amount', async function (req, res) {
         }
     } catch (err) {
         // todo - give better failure messages
-        res.json({success: false, message: 'failed to send transaction'})
+        console.error(err)
+        if(err && err.details) {
+            res.json({success: false, message: err.details})
+        } else if(err && err.message) {
+            res.json({success: false, message: err.message})
+        }
     }
     
 })

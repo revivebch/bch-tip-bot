@@ -2,7 +2,7 @@ const fetch = require('node-fetch')
 const bitcore = require('bitcore-lib-cash')
 const wallets = require('../models/wallets')
 const GrpcClient = require('grpc-bchrpc-node')
-const grpc = new GrpcClient.GrpcClient({ url: 'bchd.imaginary.cash:8335' })
+const grpc = new GrpcClient.GrpcClient({ url: 'bchd.fountainhead.cash:443' })
 
 let _sendraw = async function (rawtx) {
     var doc = {}
@@ -15,7 +15,7 @@ let _sendraw = async function (rawtx) {
 
 let _getutxo = async function (address) {
     var utxo = {ins: [], balance: 0}
-    await grpc.getAddressUtxos({ address: address, includeMempool: true }).then(res => {
+    await grpc.getAddressUtxos({address: address, includeMempool: true}).then(res => {
         res.getOutputsList().forEach(output => {
             const outpoint = output.getOutpoint()
             var doc = {
@@ -37,10 +37,17 @@ let _exists = async function (ident) {
     if (data && data[0]) {return true} else {return false}
 }
 
+let _getfee = function (ins, outs, mod = 0) {
+    var fee = 0
+    fee = (fee + (175 * ins))
+    fee = (fee + (40 * outs))
+    fee = (fee + mod)
+    return (fee + 50)
+}
+
 let balance = async function (ident) {
     var data = await wallets.find({ident: ident}).exec()
     var doc = {
-        success: true,
         address: data[0].address,
         balance: (await _getutxo(data[0].address)).balance
     }
@@ -61,7 +68,6 @@ let receive = async function (ident) {
     var data = await wallets.find({ ident: ident}).exec()
     if (data && data[0] && data[0].address && data[0].wif && data[0].ident) {
         var doc = {
-            success: true,
             address: data[0].address,
             ident: data[0].ident
         }
@@ -74,10 +80,12 @@ let send = async function (ident, recipient, amount) {
     var sender = data[0].address.split(':')[1]
     var privateKey = new bitcore.PrivateKey(data[0].wif)
     var utxo = await _getutxo(sender)
+    var fee = _getfee(utxo.ins.length, 2)
+    console.log(fee)
     var transaction = new bitcore.Transaction()
     .from(utxo.ins)
     .to(recipient, parseInt(amount))
-    .fee(420)
+    .fee(fee)
     .change(sender)
     .sign(privateKey)
     .serialize()
