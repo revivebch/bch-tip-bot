@@ -36,12 +36,6 @@ http://localhost:3000/:user_id/balance
 http://localhost:3000/:user_id/send/:address/:amount
 ```
 
-### Send OP Return
-
-```
-http://localhost:3000/:user_id/msg/:address/:message
-```
-
 ## Installation
 
 ### Prerequisite
